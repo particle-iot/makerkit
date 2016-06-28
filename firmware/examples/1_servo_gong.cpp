@@ -1,3 +1,12 @@
+/*************************************************************
+Maker Kit Tutorial #1: Servo Gong
+
+This example shows how to set up the servo included in the
+Particle Maker Kit, and how to create a Particle Cloud function
+that can be called via the Internet to actuate the servo and
+ring a bell, wine glass, or gong if you have one.
+*************************************************************/
+
 Servo myservo;  // create servo object to control a servo
                 // a maximum of eight servo objects can be created
 
