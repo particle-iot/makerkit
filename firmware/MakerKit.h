@@ -1,12 +1,16 @@
 #ifndef _MAKERKIT_H
 #define _MAKERKIT_H
 
+
+#include "application.h"
+
 /*=========================
 Adafruit_GFX
 =========================*/
 
 
 #define swap(a, b) { int16_t t = a; a = b; b = t; }
+
 
 class Adafruit_GFX : public Print {
 
@@ -101,7 +105,7 @@ All text above, and the splash screen must be included in any redistribution
 *********************************************************************/
 
 
-#include "application.h"
+
 
 #define BLACK 0
 #define WHITE 1
@@ -224,6 +228,10 @@ class Adafruit_SSD1306 : public Adafruit_GFX {
 
   inline void drawFastVLineInternal(int16_t x, int16_t y, int16_t h, uint16_t color) __attribute__((always_inline));
   inline void drawFastHLineInternal(int16_t x, int16_t y, int16_t w, uint16_t color) __attribute__((always_inline));
+
+};
+
+class MakerKit : public Adafruit_GFX {
 
 };
 
