@@ -1,33 +1,14 @@
-//currently this is just the adafruit example, but it will be an actual example soon
-/*********************************************************************
-This is an example for our Monochrome OLEDs based on SSD1306 drivers
+/*****************************************************************************
+Particle Maker Kit Tutorial #2: Next Bus Alert
 
-  Pick one up today in the adafruit shop!
-  ------> http://www.adafruit.com/category/63_98
+This tutorial uses a Particle Photon and the OLED screen from the Particle
+Maker Kit. It uses a webhook to retrieve bus prediction times from the
+NextBus Public XML feed, which must be set up first along with the webhook.
+See [tutorial URL] to learn how!
+******************************************************************************/
 
-This example is for a 128x64 size display using SPI to communicate
-4 or 5 pins are required to interface
-
-Adafruit invests time and resources providing this open source code,
-please support Adafruit and open-source hardware by purchasing
-products from Adafruit!
-
-Written by Limor Fried/Ladyada  for Adafruit Industries.
-BSD license, check license.txt for more information
-All text above, and the splash screen must be included in any redistribution
-*********************************************************************/
-
-#include "MakerKit.h"
-
-/* Uncomment this block to use hardware SPI
-// If using software SPI (the default case):
-#define OLED_MOSI   D0
-#define OLED_CLK    D1
-#define OLED_DC     D2
-#define OLED_CS     D3
-#define OLED_RESET  D4
-Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
-*/
+#include "Adafruit_SSD1306/Adafruit_GFX.h"
+#include "Adafruit_SSD1306/Adafruit_SSD1306.h"
 
 // use hardware SPI
 #define OLED_DC     D3
@@ -35,330 +16,112 @@ Adafruit_SSD1306 display(OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 #define OLED_RESET  D5
 Adafruit_SSD1306 display(OLED_DC, OLED_RESET, OLED_CS);
 
+String busName = "57"; // name of your bus -- FILL THIS IN
+int leadTime = 5; // #minute you need to get to your bus -- FILL THIS IN
+int soonestBusTime = 99; // #minutes until next bus (99 is a placeholder)
+int nextSoonestBusTime = 88; // #minutes until bus after next (88 is a placeholder)
+int gaveWarning = false; // variable to make sure we don't give bus warning too often
+int  x, minX; // variables for scrolling code
 
-#define NUMFLAKES 10
-#define XPOS 0
-#define YPOS 1
-#define DELTAY 2
-/*
-int random(int maxRand) {
-    return rand() % maxRand;
+void getBusTimes() {
+    // publish the event that will trigger our Webhook
+    Particle.publish("get_nextbus");
 }
-*/
-#define LOGO16_GLCD_HEIGHT 16
-#define LOGO16_GLCD_WIDTH  16
 
-static const unsigned char logo16_glcd_bmp[] =
-{ 0B00000000, 0B11000000,
-  0B00000001, 0B11000000,
-  0B00000001, 0B11000000,
-  0B00000011, 0B11100000,
-  0B11110011, 0B11100000,
-  0B11111110, 0B11111000,
-  0B01111110, 0B11111111,
-  0B00110011, 0B10011111,
-  0B00011111, 0B11111100,
-  0B00001101, 0B01110000,
-  0B00011011, 0B10100000,
-  0B00111111, 0B11100000,
-  0B00111111, 0B11110000,
-  0B01111100, 0B11110000,
-  0B01110000, 0B01110000,
-  0B00000000, 0B00110000 };
+void resetWarning() {
+    gaveWarning = false;
+}
 
-#if (SSD1306_LCDHEIGHT != 64)
-#error("Height incorrect, please fix Adafruit_SSD1306.h!");
-#endif
+// create a software timer to get new prediction times every minute
+Timer timer(60000, getBusTimes);
 
 void setup()   {
   Serial.begin(9600);
 
+  //retrieve the webhook data and send it to the gotNextBusData function
+  Particle.subscribe("hook-response/get_nextbus", gotNextBusData, MY_DEVICES);
+
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC);
-  // init done
 
-  display.display(); // show splashscreen
-  delay(2000);
-  display.clearDisplay();   // clears the screen and buffer
+  display.setTextSize(7);       // text size
+  display.setTextColor(WHITE); // text color
+  display.setTextWrap(false); // turn off text wrapping so we can do scrolling
+  x    = display.width();
+  minX = -1500; // 630 = 6 pixels/character * text size 7 * 15 characters * 2x slower
 
-  // draw a single pixel
-  display.drawPixel(10, 10, WHITE);
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw many lines
-  testdrawline();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw rectangles
-  testdrawrect();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw multiple rectangles
-  testfillrect();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw mulitple circles
-  testdrawcircle();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw a white circle, 10 pixel radius
-  display.fillCircle(display.width()/2, display.height()/2, 10, WHITE);
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  testdrawroundrect();
-  delay(2000);
-  display.clearDisplay();
-
-  testfillroundrect();
-  delay(2000);
-  display.clearDisplay();
-
-  testdrawtriangle();
-  delay(2000);
-  display.clearDisplay();
-
-  testfilltriangle();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw the first ~12 characters in the font
-  testdrawchar();
-  display.display();
-  delay(2000);
-  display.clearDisplay();
-
-  // draw scrolling text
-  testscrolltext();
-  delay(2000);
-  display.clearDisplay();
-
-  // text display tests
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0,0);
-  display.println("Hello, world!");
-  display.setTextColor(BLACK, WHITE); // 'inverted' text
-  display.println(3.141592);
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.print("0x"); display.println(0xDEADBEEF, HEX);
-  display.display();
-  delay(2000);
-
-  // miniature bitmap display
-  display.clearDisplay();
-  display.drawBitmap(30, 16,  logo16_glcd_bmp, 16, 16, 1);
-  display.display();
-
-  // invert the display
-  display.invertDisplay(true);
-  delay(1000);
-  display.invertDisplay(false);
-  delay(1000);
-
-  // draw a bitmap icon and 'animate' movement
-  testdrawbitmap(logo16_glcd_bmp, LOGO16_GLCD_HEIGHT, LOGO16_GLCD_WIDTH);
+  timer.start(); // start the data retrieval timer
 }
-
 
 void loop() {
 
-}
+  // this code displays the next bus times on the OLED screen with fancy scrolling
+  display.clearDisplay();
+  display.setCursor(x/2, 8);
+  display.print(busName);
+  display.print(" in ");
+  display.print(soonestBusTime);
+  display.print(", ");
+  display.print(nextSoonestBusTime);
+  display.print(" min   ");
+  display.display();
+  if(--x < minX) x = display.width()*2;
 
-
-void testdrawbitmap(const uint8_t *bitmap, uint8_t w, uint8_t h) {
-  uint8_t icons[NUMFLAKES][3];
-
-  // initialize
-  for (uint8_t f=0; f< NUMFLAKES; f++) {
-    icons[f][XPOS] = random(display.width());
-    icons[f][YPOS] = 0;
-    icons[f][DELTAY] = random(5) + 1;
-
-    Serial.print("x: ");
-    Serial.print(icons[f][XPOS], DEC);
-    Serial.print(" y: ");
-    Serial.print(icons[f][YPOS], DEC);
-    Serial.print(" dy: ");
-    Serial.println(icons[f][DELTAY], DEC);
-  }
-
-  while (1) {
-    // draw each icon
-    for (uint8_t f=0; f< NUMFLAKES; f++) {
-      display.drawBitmap(icons[f][XPOS], icons[f][YPOS], logo16_glcd_bmp, w, h, WHITE);
-    }
-    display.display();
-    delay(200);
-
-    // then erase it + move it
-    for (uint8_t f=0; f< NUMFLAKES; f++) {
-      display.drawBitmap(icons[f][XPOS], icons[f][YPOS],  logo16_glcd_bmp, w, h, BLACK);
-      // move it
-      icons[f][YPOS] += icons[f][DELTAY];
-      // if its gone, reinit
-      if (icons[f][YPOS] > display.height()) {
-	icons[f][XPOS] = random(display.width());
-	icons[f][YPOS] = 0;
-	icons[f][DELTAY] = random(5) + 1;
+  // give a "time to leave!" beeping warning, but only once per bus
+  if(soonestBusTime <= leadTime && gaveWarning == false)
+  {
+      for (int i=0; i<3; i++)
+      {
+        tone(D0, 5000, 100);
+        delay(200);
       }
+      gaveWarning = true;
+  }
+
+  // reset the beeping warning flag so we can warn about the next bus
+  else if(soonestBusTime > leadTime && gaveWarning == true)
+  {
+      gaveWarning = false;
+  }
+}
+
+// This function will get called when NextBus webhook data comes in.
+// It turns the full NextBus XML page into numbers to be displayed on the screen
+void gotNextBusData(const char *name, const char *data) {
+
+    // put the incoming data (the XML page) into a string called "str"
+    String str = String(data);
+
+    // send str to the tryExtractString function, looking for the first instance (0) of "minutes=\""
+    String soonestStr = tryExtractString(0, str, "minutes=\"", "\"");
+    // turn the extracted bus time into an integer and store it in soonestBusTime
+    soonestBusTime = soonestStr.toInt();
+
+    // send str to the tryExtractString function, looking for the second instance (1) of "minutes=\""
+    String nextSoonestStr = tryExtractString(1, str, "minutes=\"", "\"");
+    // turn the extracted bus time into an integer and store it in nextSoonestBusTime
+    nextSoonestBusTime = nextSoonestStr.toInt();
+}
+
+// this function gets called by gotNextBusData to extract the bus times from the NextBus XML page
+String tryExtractString(int matchNum, String str, const char* start, const char* end) {
+    if (str == NULL) {
+        return NULL;
     }
-   }
-}
 
+    int count = 0;
+    int lastIdx = 0;
 
-void testdrawchar(void) {
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0,0);
+    while (count <= matchNum) {
+        int idx = str.indexOf(start, lastIdx);
 
-  for (uint8_t i=0; i < 168; i++) {
-    if (i == '\n') continue;
-    display.write(i);
-    if ((i > 0) && (i % 21 == 0))
-      display.println();
-  }
-  display.display();
-}
+        int endIdx = str.indexOf(end, lastIdx + idx + strlen(start));
 
-void testdrawcircle(void) {
-  for (int16_t i=0; i<display.height(); i+=2) {
-    display.drawCircle(display.width()/2, display.height()/2, i, WHITE);
-    display.display();
-  }
-}
+        lastIdx = endIdx;
 
-void testfillrect(void) {
-  uint8_t color = 1;
-  for (int16_t i=0; i<display.height()/2; i+=3) {
-    // alternate colors
-    display.fillRect(i, i, display.width()-i*2, display.height()-i*2, color%2);
-    display.display();
-    color++;
-  }
-}
-
-void testdrawtriangle(void) {
-  for (int16_t i=0; i<min(display.width(),display.height())/2; i+=5) {
-    display.drawTriangle(display.width()/2, display.height()/2-i,
-                     display.width()/2-i, display.height()/2+i,
-                     display.width()/2+i, display.height()/2+i, WHITE);
-    display.display();
-  }
-}
-
-void testfilltriangle(void) {
-  uint8_t color = WHITE;
-  for (int16_t i=min(display.width(),display.height())/2; i>0; i-=5) {
-    display.fillTriangle(display.width()/2, display.height()/2-i,
-                     display.width()/2-i, display.height()/2+i,
-                     display.width()/2+i, display.height()/2+i, WHITE);
-    if (color == WHITE) color = BLACK;
-    else color = WHITE;
-    display.display();
-  }
-}
-
-void testdrawroundrect(void) {
-  for (int16_t i=0; i<display.height()/2-2; i+=2) {
-    display.drawRoundRect(i, i, display.width()-2*i, display.height()-2*i, display.height()/4, WHITE);
-    display.display();
-  }
-}
-
-void testfillroundrect(void) {
-  uint8_t color = WHITE;
-  for (int16_t i=0; i<display.height()/2-2; i+=2) {
-    display.fillRoundRect(i, i, display.width()-2*i, display.height()-2*i, display.height()/4, color);
-    if (color == WHITE) color = BLACK;
-    else color = WHITE;
-    display.display();
-  }
-}
-
-void testdrawrect(void) {
-  for (int16_t i=0; i<display.height()/2; i+=2) {
-    display.drawRect(i, i, display.width()-2*i, display.height()-2*i, WHITE);
-    display.display();
-  }
-}
-
-void testdrawline() {
-  for (int16_t i=0; i<display.width(); i+=4) {
-    display.drawLine(0, 0, i, display.height()-1, WHITE);
-    display.display();
-  }
-  for (int16_t i=0; i<display.height(); i+=4) {
-    display.drawLine(0, 0, display.width()-1, i, WHITE);
-    display.display();
-  }
-  delay(250);
-
-  display.clearDisplay();
-  for (int16_t i=0; i<display.width(); i+=4) {
-    display.drawLine(0, display.height()-1, i, 0, WHITE);
-    display.display();
-  }
-  for (int16_t i=display.height()-1; i>=0; i-=4) {
-    display.drawLine(0, display.height()-1, display.width()-1, i, WHITE);
-    display.display();
-  }
-  delay(250);
-
-  display.clearDisplay();
-  for (int16_t i=display.width()-1; i>=0; i-=4) {
-    display.drawLine(display.width()-1, display.height()-1, i, 0, WHITE);
-    display.display();
-  }
-  for (int16_t i=display.height()-1; i>=0; i-=4) {
-    display.drawLine(display.width()-1, display.height()-1, 0, i, WHITE);
-    display.display();
-  }
-  delay(250);
-
-  display.clearDisplay();
-  for (int16_t i=0; i<display.height(); i+=4) {
-    display.drawLine(display.width()-1, 0, 0, i, WHITE);
-    display.display();
-  }
-  for (int16_t i=0; i<display.width(); i+=4) {
-    display.drawLine(display.width()-1, 0, i, display.height()-1, WHITE);
-    display.display();
-  }
-  delay(250);
-}
-
-void testscrolltext(void) {
-  display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setCursor(10,0);
-  display.clearDisplay();
-  display.println("scroll");
-  display.display();
-
-  display.startscrollright(0x00, 0x0F);
-  delay(2000);
-  display.stopscroll();
-  delay(1000);
-  display.startscrollleft(0x00, 0x0F);
-  delay(2000);
-  display.stopscroll();
-  delay(1000);
-  display.startscrolldiagright(0x00, 0x07);
-  delay(2000);
-  display.startscrolldiagleft(0x00, 0x07);
-  delay(2000);
-  display.stopscroll();
+        if (count == matchNum) {
+            return str.substring(idx + strlen(start), endIdx);
+        }
+        count++;
+    }
 }
