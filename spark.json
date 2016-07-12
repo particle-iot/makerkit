@@ -1,7 +1,7 @@
 {
   "name": "MakerKit",
-  "author": "Limor Fried/Ladyada, Paul Kourany, Owen Smithyman",
+  "author": "Owen Smithyman",
   "license": "BSD",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A library with examples for each Particle Maker Kit tutorial."
 }
