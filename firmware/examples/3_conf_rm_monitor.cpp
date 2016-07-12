@@ -1,10 +1,10 @@
 /*****************************************************************************
-Particle Maker Kit Tutorial #3: PIR Motion Sensor
+Particle Maker Kit Tutorial #3: Slack-Enabled Conference Room Monitor
 
 This tutorial uses a Photon and the PIR motion sensor from the Particle Maker
 Kit to determine whether a conference room is in use and post the status to
-Slack. To see the full instructions, visit 
-http://docs.particle.io/tutorials/topics/maker-kit
+Slack. To see the full instructions, visit
+http://docs.particle.io/tutorials/topics/maker-kit.
 ******************************************************************************/
 
 int ledPin = D7;                 // choose the pin for the LED
