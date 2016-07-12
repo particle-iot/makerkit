@@ -4,11 +4,10 @@ Particle Maker Kit Tutorial #2: Next Bus Alert
 This tutorial uses a Particle Photon and the OLED screen from the Particle
 Maker Kit. It uses a webhook to retrieve bus prediction times from the
 NextBus Public XML feed, which must be set up first along with the webhook.
-See [tutorial URL] to learn how!
+See http://docs.particle.io/tutorials/topics/maker-kit to learn how!
+NOTE: This code example requires the Adafruit_SSD1306 library to be included,
+so make sure to add it via the Libraries tab in the left sidebar.
 ******************************************************************************/
-
-#include "Adafruit_SSD1306/Adafruit_GFX.h"
-#include "Adafruit_SSD1306/Adafruit_SSD1306.h"
 
 // use hardware SPI
 #define OLED_DC     D3
@@ -16,10 +15,11 @@ See [tutorial URL] to learn how!
 #define OLED_RESET  D5
 Adafruit_SSD1306 display(OLED_DC, OLED_RESET, OLED_CS);
 
-String busName = "57"; // name of your bus -- FILL THIS IN
-int leadTime = 5; // #minute you need to get to your bus -- FILL THIS IN
+String busName = "57"; // name of your bus -- FILL THIS IN!
+int leadTime = 5; // #minutes you need to get to your bus -- FILL THIS IN!
 int soonestBusTime = 99; // #minutes until next bus (99 is a placeholder)
 int nextSoonestBusTime = 88; // #minutes until bus after next (88 is a placeholder)
+String soonestStr, nextSoonestStr; // strings for parsing
 int gaveWarning = false; // variable to make sure we don't give bus warning too often
 int  x, minX; // variables for scrolling code
 
@@ -28,18 +28,15 @@ void getBusTimes() {
     Particle.publish("get_nextbus");
 }
 
-void resetWarning() {
-    gaveWarning = false;
-}
-
 // create a software timer to get new prediction times every minute
 Timer timer(60000, getBusTimes);
 
 void setup()   {
-  Serial.begin(9600);
+  // start the data retrieval timer
+  timer.start();
 
   //retrieve the webhook data and send it to the gotNextBusData function
-  Particle.subscribe("hook-response/get_nextbus", gotNextBusData, MY_DEVICES);
+  Particle.subscribe("hook-response/get_nextbus/0", gotNextBusData, MY_DEVICES);
 
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC);
@@ -47,17 +44,15 @@ void setup()   {
   display.setTextSize(7);       // text size
   display.setTextColor(WHITE); // text color
   display.setTextWrap(false); // turn off text wrapping so we can do scrolling
-  x    = display.width();
+  x    = display.width(); // set scrolling frame to display width
   minX = -1500; // 630 = 6 pixels/character * text size 7 * 15 characters * 2x slower
-
-  timer.start(); // start the data retrieval timer
 }
 
 void loop() {
 
   // this code displays the next bus times on the OLED screen with fancy scrolling
   display.clearDisplay();
-  display.setCursor(x/2, 8);
+  display.setCursor(x/2, 7);
   display.print(busName);
   display.print(" in ");
   display.print(soonestBusTime);
@@ -93,12 +88,12 @@ void gotNextBusData(const char *name, const char *data) {
     String str = String(data);
 
     // send str to the tryExtractString function, looking for the first instance (0) of "minutes=\""
-    String soonestStr = tryExtractString(0, str, "minutes=\"", "\"");
+    soonestStr = tryExtractString(0, str, "minutes=\"", "\"");
     // turn the extracted bus time into an integer and store it in soonestBusTime
     soonestBusTime = soonestStr.toInt();
 
     // send str to the tryExtractString function, looking for the second instance (1) of "minutes=\""
-    String nextSoonestStr = tryExtractString(1, str, "minutes=\"", "\"");
+    nextSoonestStr = tryExtractString(1, str, "minutes=\"", "\"");
     // turn the extracted bus time into an integer and store it in nextSoonestBusTime
     nextSoonestBusTime = nextSoonestStr.toInt();
 }
