@@ -5,6 +5,7 @@ This tutorial uses a Particle Photon and the OLED screen from the Particle
 Maker Kit. It uses a webhook to retrieve bus prediction times from the
 NextBus Public XML feed, which must be set up first along with the webhook.
 See http://docs.particle.io/tutorials/topics/maker-kit to learn how!
+
 NOTE: This code example requires the Adafruit_SSD1306 library to be included,
 so make sure to add it via the Libraries tab in the left sidebar.
 ******************************************************************************/
@@ -35,8 +36,11 @@ void setup()   {
   // start the data retrieval timer
   timer.start();
 
-  //retrieve the webhook data and send it to the gotNextBusData function
+  //subscribe to the get_nextbus event so we can get the data from the webhook
   Particle.subscribe("hook-response/get_nextbus/0", gotNextBusData, MY_DEVICES);
+
+  Particle.publish("get_nextbus"); // publish the event to trigger the data
+  delay(2000); // wait for data to arrive
 
   // by default, we'll generate the high voltage from the 3.3v line internally! (neat!)
   display.begin(SSD1306_SWITCHCAPVCC);
