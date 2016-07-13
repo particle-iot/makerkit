@@ -10,7 +10,8 @@ http://docs.particle.io/tutorials/topics/maker-kit.
 int ledPin = D7;                 // choose the pin for the LED
 int inputPin = D0;               // choose the PIR sensor pin
 int motionCounter = 0;           // variable to count motion events
-String status = "test";          // string to hold "available" or "in use"
+String status = "test";          // string to hold "available" or "in use",
+                                 // "test" is for when it first turns on
 
 Timer timer(30000, determineMotion); // software timer to check every 30s
 
